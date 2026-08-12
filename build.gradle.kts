@@ -12,6 +12,13 @@ plugins {
 group = "pl.blizinski"
 version = "0.1.0"
 
+// Publishing more than one target breaks JitPack's Gradle module metadata for downstream KMP
+// consumers (see task-sync-kotlin's build.gradle.kts for the full explanation) — TaskCompass
+// only ever consumes this library's android target via JitPack, so wasmJs is skipped for
+// JitPack builds (set via `-PjitpackBuild=true` in jitpack.yml); local/POC development on the
+// target is unaffected.
+val isJitpackBuild = project.hasProperty("jitpackBuild")
+
 kotlin {
     android {
         namespace = "pl.blizinski.githubissuesstore"
@@ -33,14 +40,20 @@ kotlin {
     // not touch the android {} block above. Reuses task-sync-kotlin's SyncEngine/
     // PendingOpsProcessor directly (now commonMain) with an InMemoryLocalStore instead of
     // Room, and no AdaptivePoller/WorkManager (see GitHubIssuesStoreWasm in wasmJsMain).
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
+    // Skipped on JitPack — see isJitpackBuild above.
+    if (!isJitpackBuild) {
+        @OptIn(ExperimentalWasmDsl::class)
+        wasmJs {
+            browser()
+        }
     }
 
     sourceSets {
         commonMain.dependencies {
             implementation(libs.coroutines.core)
+            // Resolved via JitPack normally; substituted for the local checkout when one exists
+            // as a sibling directory — see the root settings.gradle.kts.
+            implementation("com.github.automaciej:task-sync-kotlin:v0.2.1")
         }
         androidMain.dependencies {
             implementation(libs.kotlinx.serialization.json)
@@ -48,24 +61,21 @@ kotlin {
             implementation(libs.room.ktx)
             implementation(libs.work.runtime.ktx)
             implementation(libs.okhttp)
-            // Resolved via JitPack normally; substituted for the local checkout when one exists
-            // as a sibling directory — see the root settings.gradle.kts.
-            implementation("com.github.automaciej:task-sync-kotlin:v0.1.1")
         }
         getByName("androidHostTest").dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.coroutines.test)
         }
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(libs.kotlinx.serialization.json)
-                implementation(libs.ktor.client.core)
-                implementation(libs.ktor.client.js)
-                implementation(libs.ktor.client.content.negotiation)
-                implementation(libs.ktor.serialization.kotlinx.json)
-                // Resolved via JitPack normally; substituted for the local checkout when one
-                // exists as a sibling directory — see the root settings.gradle.kts.
-                implementation("com.github.automaciej:task-sync-kotlin:v0.1.1")
+        if (!isJitpackBuild) {
+            val wasmJsMain by getting {
+                dependencies {
+                    implementation(libs.kotlinx.serialization.json)
+                    implementation(libs.ktor.client.core)
+                    implementation(libs.ktor.client.js)
+                    implementation(libs.ktor.client.content.negotiation)
+                    implementation(libs.ktor.serialization.kotlinx.json)
+                    implementation("com.github.automaciej:task-sync-kotlin:v0.2.1")
+                }
             }
         }
     }
