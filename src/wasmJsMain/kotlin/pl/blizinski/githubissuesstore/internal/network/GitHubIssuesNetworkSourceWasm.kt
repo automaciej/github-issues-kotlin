@@ -16,7 +16,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlinx.serialization.json.Json
-import pl.blizinski.githubissuesstore.GitHubAccessTokenProvider
+import pl.blizinski.tasksync.model.AccessTokenProvider
 import pl.blizinski.githubissuesstore.internal.GitHubListRef
 import pl.blizinski.githubissuesstore.internal.GitHubRepo
 import pl.blizinski.githubissuesstore.internal.GitHubTask
@@ -36,7 +36,7 @@ private const val API_VERSION = "2022-11-28"
  */
 @OptIn(ExperimentalTime::class)
 internal class GitHubIssuesNetworkSourceWasm(
-    private val tokenProvider: GitHubAccessTokenProvider,
+    private val tokenProvider: AccessTokenProvider,
     private val httpClient: HttpClient = HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })

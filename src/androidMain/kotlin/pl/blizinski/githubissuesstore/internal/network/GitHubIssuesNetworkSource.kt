@@ -8,7 +8,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import pl.blizinski.githubissuesstore.GitHubAccessTokenProvider
+import pl.blizinski.tasksync.model.AccessTokenProvider
 import pl.blizinski.githubissuesstore.internal.GitHubListRef
 import pl.blizinski.githubissuesstore.internal.GitHubRepo
 import pl.blizinski.githubissuesstore.internal.GitHubTask
@@ -43,7 +43,7 @@ private val JSON_MEDIA_TYPE = "application/json".toMediaType()
  * endpoints return both, distinguishable by a non-null `pull_request` key).
  */
 internal class GitHubIssuesNetworkSource(
-    private val tokenProvider: GitHubAccessTokenProvider,
+    private val tokenProvider: AccessTokenProvider,
     private val httpClient: OkHttpClient = OkHttpClient(),
 ) : NetworkSource<GitHubTask, GitHubRepo> {
 
