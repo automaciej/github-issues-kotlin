@@ -3,6 +3,7 @@ package pl.blizinski.githubissuesstore
 import android.content.Context
 import kotlinx.serialization.serializer
 import pl.blizinski.githubissuesstore.internal.GitHubIssuesContentAdapter
+import pl.blizinski.githubissuesstore.internal.GitHubIssuesContentMerger
 import pl.blizinski.githubissuesstore.internal.GitHubRepo
 import pl.blizinski.githubissuesstore.internal.GitHubTask
 import pl.blizinski.githubissuesstore.internal.network.GitHubApiException
@@ -35,4 +36,5 @@ fun gitHubIssuesStore(
     recordSerializer = serializer<GitHubTask>(),
     listSerializer = serializer<GitHubRepo>(),
     adapter = GitHubIssuesContentAdapter,
+    merger = GitHubIssuesContentMerger,
 )
