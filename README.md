@@ -1,71 +1,81 @@
-# github-issues-store
+# github-issues-kotlin
 
 [![](https://jitpack.io/v/automaciej/github-issues-kotlin.svg)](https://jitpack.io/#automaciej/github-issues-kotlin)
 
-Android library that wraps the [GitHub Issues API](https://docs.github.com/en/rest/issues)
-with a local Room cache and exposes a reactive `GitHubIssuesStoreApi`, built
-on top of [task-sync-kotlin](https://github.com/automaciej/task-sync-kotlin)'s
-shared offline-first sync engine.
+Kotlin library that wraps the [GitHub Issues API](https://docs.github.com/en/rest/issues)
+with a local Room cache and exposes it through the shared
+[`TaskStore`](https://github.com/automaciej/task-sync-kotlin) contract, built on
+[task-sync-kotlin](https://github.com/automaciej/task-sync-kotlin)'s offline-first
+sync engine.
 
 This is not a thin, stateless network wrapper: reads and writes go through a
-local Room database that is the actual source of truth for the UI, kept in
-sync with GitHub in the background. GitHub itself remains the ultimate
-source of truth for issue data; this library's cache is what lets the app
-work fully offline in between syncs.
+local database that is the source of truth for the UI, reconciled with GitHub
+in the background, so the app works fully offline between syncs. GitHub remains
+the ultimate source of truth for issue data.
 
-This library never handles GitHub authentication itself — it takes a
-`GitHubAccessTokenProvider` supplied by the consuming app (backed by a
-Personal Access Token the user pastes in), which owns the actual credential
-storage. This keeps the library free of any client ID or other
-app-specific credential.
+The library never handles GitHub authentication — it takes an
+`AccessTokenProvider` (`pl.blizinski.tasksync.model.AccessTokenProvider`, a
+single `suspend fun getToken(): String`) supplied by the consuming app, backed
+by a Personal Access Token the user pastes in. `GitHubTokenVerifier` is provided
+for validating a PAT before it's stored.
 
-## Features
+## One contract, four sources
 
-- **`GitHubIssuesStoreApi`**: reactive `Flow`s of task lists (repositories)
-  and tasks (issues) per list, plus a `Flow<SyncStatus>` for surfacing sync
-  errors/progress in the UI.
-- **Adaptive background polling and pending-op merging** inherited from
-  `task-sync-kotlin`: op-merging, tombstone detection, per-account polling
-  isolation via `AdaptivePoller`, and structured `SyncErrorKind`
-  classification specific to GitHub's auth/rate-limit errors.
-- **`forceSync()` / `fullSync()`**: run a sync cycle synchronously on demand,
-  with `fullSync()` re-pulling every list from scratch to repair local state
-  that drifted in a way incremental sync can't catch.
-- **wasmJs proof-of-concept target** alongside the primary Android target —
-  reuses `task-sync-kotlin`'s `SyncEngine`/`PendingOpsProcessor` (commonMain)
-  with an in-memory store instead of Room, no `AdaptivePoller`/WorkManager.
+`github-issues-kotlin`, `google-tasks-kotlin`, `microsoft-todo-kotlin` and
+`todoist-kotlin` are separate, independently-versioned libraries that **all
+expose the same `pl.blizinski.tasksync.store.TaskStore` interface over the same
+`pl.blizinski.tasksync.model.Task` / `TaskList` types**. A consuming app can hold
+several of them side by side and treat them uniformly, branching only on each
+one's declared `StoreCapabilities` (`GitHubIssues.capabilities`) — e.g. GitHub
+has no due date, no priority, and a "list" is a pre-existing repository the app
+neither creates nor deletes.
 
-## What it is *not*
+## API
 
-- **Not a general-purpose task-list abstraction.** `Task`/`TaskList` here
-  are shaped around GitHub Issues (title, body, state). It's not meant to
-  be swapped for another source's schema — that's what `google-tasks-kotlin`/
-  `microsoft-todo-kotlin`/`todoist-kotlin` are, as separate,
-  independently-versioned libraries sharing the same underlying engine.
+```kotlin
+// Android
+val store: TaskStore = gitHubIssuesStore(
+    context,
+    tokenProvider,                       // AccessTokenProvider
+    StoreConfig(dbName = "github_issues_store_$accountId"),
+)
+// wasmJs
+val store: TaskStore = gitHubIssuesWasmStore(tokenProvider, StoreConfig(dbName = "github_issues_store"))
+```
+
+`TaskStore` gives you `Flow`s of task lists (repositories) and tasks (issues) per
+list, a `Flow<SyncStatus>`, optimistic `createTask`/`updateTask`/`completeTask`/
+`uncompleteTask`/`deleteTask` (delete closes the issue — GitHub's REST API has no
+delete endpoint), and `forceSync()`/`fullSync()`. `createList`/`updateList`/
+`deleteList` throw — `GitHubIssues.capabilities.supportsListCreation` is `false`.
+
+Op-merging, tombstone detection, per-account polling isolation, and
+`SyncErrorKind` classification are inherited from `task-sync-kotlin`.
+
+## Targets
+
+`androidTarget` (Room + `androidx.work`) and a `wasmJs` target
+(`gitHubIssuesWasmStore`, IndexedDB, sync-on-demand). wasmJs is excluded from
+JitPack builds (see `jitpack.yml`).
 
 ## Usage
 
-Add the JitPack repository:
-
 ```kotlin
+// settings.gradle.kts
 dependencyResolutionManagement {
-    repositories {
-        maven { url = uri("https://jitpack.io") }
-    }
+    repositories { maven { url = uri("https://jitpack.io") } }
 }
 ```
-
-Add the dependency:
 
 ```kotlin
+// build.gradle.kts
 dependencies {
-    implementation("com.github.automaciej:github-issues-kotlin:v0.1.0")
+    implementation("com.github.automaciej:github-issues-kotlin:v0.2.0")
 }
 ```
 
-Implement `GitHubAccessTokenProvider` against your app's own PAT storage,
-construct a `GitHubIssuesStore` with it, then consume it through
-`GitHubIssuesStoreApi`.
+Implement `AccessTokenProvider` against your app's PAT storage, call
+`gitHubIssuesStore(...)`, and consume the returned `TaskStore`.
 
 ## Build
 
