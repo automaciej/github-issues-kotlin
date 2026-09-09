@@ -22,14 +22,14 @@ import pl.blizinski.tasksync.store.buildAndroidTaskStore
  *
  * No legacy on-disk schema, so no Room migrations are passed.
  */
-fun GitHubIssues.store(
+fun gitHubIssuesStore(
     context: Context,
     tokenProvider: AccessTokenProvider,
     config: StoreConfig,
 ): TaskStore = buildAndroidTaskStore(
     context = context,
     config = config,
-    capabilities = capabilities,
+    capabilities = GitHubIssues.capabilities,
     network = GitHubIssuesNetworkSource(tokenProvider),
     errorClassifier = HttpStatusSyncErrorClassifier(statusOf = { (it as? GitHubApiException)?.httpStatus }),
     recordSerializer = serializer<GitHubTask>(),

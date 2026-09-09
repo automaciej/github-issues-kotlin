@@ -18,12 +18,12 @@ import pl.blizinski.tasksync.store.buildWasmTaskStore
  * Builds an IndexedDB-backed [TaskStore] for GitHub Issues on wasmJs, syncing on demand only —
  * see TaskCompass's `Docs/designs/2026-07-30-web-wasmjs-google-tasks-poc.md` (Stage G).
  */
-fun GitHubIssues.wasmStore(
+fun gitHubIssuesWasmStore(
     tokenProvider: AccessTokenProvider,
     config: StoreConfig,
 ): TaskStore = buildWasmTaskStore(
     config = config,
-    capabilities = capabilities,
+    capabilities = GitHubIssues.capabilities,
     network = GitHubIssuesNetworkSourceWasm(tokenProvider),
     errorClassifier = HttpStatusSyncErrorClassifier(
         statusOf = { (it as? GitHubApiException)?.httpStatus },

@@ -5,7 +5,7 @@ import pl.blizinski.tasksync.model.StoreCapabilities
 
 /**
  * Static facts about the GitHub Issues source, available before any account is connected.
- * [GitHubIssues.store] (androidMain) / [GitHubIssues.wasmStore] (wasmJsMain) build a
+ * [gitHubIssuesStore] (androidMain) / [gitHubIssuesWasmStore] (wasmJsMain) build a
  * [pl.blizinski.tasksync.store.TaskStore] for a connected account.
  */
 object GitHubIssues {
