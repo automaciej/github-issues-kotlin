@@ -88,3 +88,9 @@ kotlin {
 dependencies {
     add("kspAndroid", libs.room.compiler)
 }
+
+// Don't publish Gradle Module Metadata — JitPack serves the synthetic flat coordinate
+// (com.github.automaciej:github-issues-kotlin) as POM + stub jar, and a stray .module file makes its
+// flat-coordinate synthesis emit the POM without the stub jar it references, breaking downstream
+// resolution ("Could not find github-issues-kotlin-<tag>.jar"). Nothing consuming this library needs the .module.
+tasks.withType<GenerateModuleMetadata>().configureEach { enabled = false }
